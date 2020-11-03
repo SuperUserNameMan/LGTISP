@@ -63,6 +63,7 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
    5. change it so it looks like this:
    `<path>/arduino-1.8.13/hardware/tools/avr/bin/avrdude -C<path>/arduino-1.8.13/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -cstk500v1 -P<isp_serial_adapter> -t`
    6. `-t` will open AVRdude in terminal mode.
+   7. open a terminal, and run this command. AVRdude should open in terminal mode.
    7. command `dump flash <addr> <length>` will let you display the content of the flash.
    8. commant `quit` to quit, and `help` for help.
    
