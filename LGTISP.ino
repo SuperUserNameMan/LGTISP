@@ -1,7 +1,9 @@
 // 20201102 :
 // - google-translate chinese comments into english
 // - add instructions for compiling to ATmega328p boards
-// - code cleanup and reindentation
+// - code cleanup
+// - implemented flash byte reading into universal() which is used by 
+//   the "dump flash" command of AVRdude in terminal mode.
 // 
 // 20 July 2020 David Buezas
 // - Bundled and added menu utility
@@ -85,8 +87,6 @@
 #define STK_INSYNC  0x14
 #define STK_NOSYNC  0x15
 #define CRC_EOP     0x20 //ok it is a space...
-
-volatile uint8_t chip_erased;
 
 void pulse(int pin, int times);
 
@@ -347,6 +347,30 @@ void universal()
 	{
 		breply(0x00);
 	} 
+	else
+	if ( buff[0] == 0x20 || buff[0] == 0x28 )
+	{
+		// Read one byte from flash memory.
+		//!\ Atmega32 and AVRdude use addr for 16 bits data
+		//!\ LGT8Fx8p needs addr for 32 bits data
+		
+		// 0x20 AVR_OP_READ_HI
+		// 0x28 AVR_OP_READ_LO
+		
+		// buff[0] : 0x20-0x28
+		// buff[1] : addr_hi >> 1
+		// buff[2] : addr_lo >> 1
+		// buff[3] : 0
+		
+		uint16_t addr = ( ( ( buff[1] << 8 ) | buff[2] ) << 1 ) + ( buff[0] == 0x28 ? 1 : 0 ); // 8bits data addr
+		
+		
+		SWD_EEE_CSEQ(0x00, 0x01);
+		uint32_t data = SWD_EEE_Read( addr / 4 ); // LGT8Fx8p uses addr for 32bits data
+		SWD_EEE_CSEQ(0x00, 0x01);
+		
+		breply( ((uint8_t*)&data)[ addr & 0x3 ] );
+	}
 	else 
 	{
 		breply(0xff);
@@ -585,7 +609,7 @@ void read_signature()
 ////////////////////////////////////
 ////////////////////////////////////
 
-
+volatile uint8_t chip_erased;
 
 int avrisp() 
 { 
