@@ -31,7 +31,8 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
        * select "Tools / Board type / Logic Green Arduino AVR compatible board / LGT8F328".
        * select the appropriate "Tools / Processor".
        * select "Tools / Arduino as ISP / \[To burn an ISP\] SERIAL_RX_BUFFER_SIZE 250".
-   2. Upload this sketch into your Nano board.
+   2. Upload this sketch into your Nano board.  
+      * If the board is real ATmega328p Nano board, you can now remove the `#define SERIAL_RX_BUFFER_SIZE 256` from `HardwareSerial.h`. 
    3. If you want to avoid bootloader from executing (so you don't reprogram the ISP board accidentally) short `RESET` pin and `VCC` pin of board.
    4. The board has now become a LGTISP ! 
    5. Connect your Nano to the target :   
