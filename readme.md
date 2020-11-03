@@ -71,5 +71,5 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
 ## reference
 - Forked from : [LGTISP](https://github.com/brother-yan/LGTISP)
 - recommanded LGT8F core for Arduino IDE : [dbuezas/lgt8fx](https://github.com/dbuezas/lgt8fx)
-
+- Atk500v1 protocol : http://ww1.microchip.com/downloads/en/Appnotes/doc2525.pdf 
 
