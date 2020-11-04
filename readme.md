@@ -72,4 +72,5 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
 - Forked from : [brother-yan/LGTISP](https://github.com/brother-yan/LGTISP)
 - recommanded LGT8F core for Arduino IDE : [dbuezas/lgt8fx](https://github.com/dbuezas/lgt8fx)
 - Atk500v1 protocol : http://ww1.microchip.com/downloads/en/Appnotes/doc2525.pdf 
-
+- AVRdude : http://savannah.nongnu.org/projects/avrdude
+- AVR ISP protocol : [AVR910 - In-System-Programming protocol](http://ww1.microchip.com/downloads/en/Appnotes/Atmel-0943-In-System-Programming_ApplicationNote_AVR910.pdf)
