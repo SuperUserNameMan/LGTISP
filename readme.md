@@ -67,6 +67,31 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
    7. command `dump flash <addr> <length>` will let you display the content of the flash.
    8. commant `quit` to quit, and `help` for help.
    
+## Note regarding the EEPROM on LGT8F328p :
+
+On the LGT8F328p, the EEPROM is emulated and stored into the main Flash memory.
+
+The size of this emulated EEPROM can be set by software using bits 1 and 0 of the `ECCR` register :
+
+| bit 1 | bit 0 | EEPROM size | Available bytes | Size in flash memory |
+|:-:|:-:|:-:|:-:|:-:|
+| 0 | 0 | 1KB | 1024 - 2 | 2048 | 
+| 0 | 1 | 2KB | 2048 - 4 | 4096 |
+| 1 | 0 | 4KB | 4096 - 8 | 8192 |
+| 1 | 1 | 8KB | 8192 - 16 | 16384 |
+
+However, because AVRdude thinks the LGT8F328p is an ATmega328p, `dump eeprom` will only display 1KB.
+
+Also, because EEPROM is emulated using the main Flash memory, it can be dumped using `dump flash 0x7800 1024` and `dump flash 0x7c00 1024`.
+
+There are two pages, because the hardware algorithm swap them each time the content of the emulated EEPROM is updated.
+
+The hardware algorithm does like this : each time the EEPROM is updated, the EPCTL erases the new page, copies the old page + the updates into the new page, swaps the old and the new pages, and adds a 2bytes long code at the end of each page to remember which one is new, and which one is old.
+
+This means that 1KB of EEPROM will use 2KB of flash, 2KB will use 4KB, etc, and also that the last 2 bytes of every 1024 bytes pages will contain a code.
+
+So on 1024 bytes, only 1022 are actually available, and the 2 lasts ones will be overwritten by the LGT8F328p.
+
 
 ## reference
 - Forked from : [brother-yan/LGTISP](https://github.com/brother-yan/LGTISP)
