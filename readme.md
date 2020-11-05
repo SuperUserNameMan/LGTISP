@@ -5,7 +5,7 @@ LGT8Fx8p ISP protocol implementation.
 This is an implementation of LGT8Fx8p ISP protocol. 
 You can turn a LGT8Fx8p or an ATmega328p Arduino board into an ISP for LGT8Fx8P.
 
-This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash` command of AVRdude in terminal mode.
+This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash` and `dump eeprom` commands of AVRdude in terminal mode.
 
 ## supported functions
 - Arduino IDE and AVRdude commande line :
