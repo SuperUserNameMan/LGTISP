@@ -13,7 +13,7 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
    - [x] upload sketches to LGT8Fx8p board from the Arduino IDE (Ctrl + Shift + U)
 - AVRdude terminal mode :
    - [x] `dump flash` command
-   - [ ] `dump eeprom` command
+   - [x] `dump eeprom` command
    - [ ] `write` command
    - [ ] `erase` command
    - [x] `sig` command
