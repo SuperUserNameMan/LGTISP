@@ -1,3 +1,7 @@
+// 20201105 :
+// - universal() : added support for "dump eeprom" of AVRdude in terminal mode.
+// - swd_lgt8fx8p.x : indentation cleanup and googletranslation of chinese comments.
+//
 // 20201102 :
 // - google-translate chinese comments into english
 // - add instructions for compiling to ATmega328p boards
@@ -69,6 +73,7 @@
 #error : Please change the macro SERIAL_RX_BUFFER_SIZE to 250 (In the menu: Tools/Arduino as ISP/SERIAL_RX_BUFFER_SIZE)
 #error : If trying to compile for Atmega328p, use the standard Arduino AVR core, and temporarily add "#define SERIAL_RX_BUFFER_SIZE 256" into HardwareSerial.h
 #endif
+
 
 #define RESET	10
 #define LED_HB    9
@@ -321,20 +326,76 @@ void universal()
 {
 	fill(4);
 	
-	if( buff[0] == 0x30 && buff[1] == 0x00 ) // signature
+	// see : http://ww1.microchip.com/downloads/en/Appnotes/Atmel-0943-In-System-Programming_ApplicationNote_AVR910.pdf
+	// see : http://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf
+		
+	// Control instructions :
+	
+		// 0xAC 53 00 00 : Programming enabled
+		
+		// 0xAC 80 00 00 : Chip erase (flash + EEPROM)
+		
+		// 0xF0 00 00 xx : Poll RDY/BSY (wait till returns 0 before next instruction). Return : 0 = Ready ; 1 = Busy
+	
+	// Load instructions :
+		
+		// 0x4D 00 <A>  00 : Load extended address byte
+		
+		// 0x48 00 <A> <B> : Load program memory page <A>, high byte <B>
+		// 0x40 00 <A> <B> : Load program memory page <A>, low byte <B>
+		
+		// 0xC1 00 <A> <B> : Load EEPROM memory page (page access mode)
+	
+	// Read instructions :
+		
+		// 0x28 <H> <L> xx : read FLASH memory, high byte
+		// 0x20 <h> <l> xx : read FLASH memory, low  byte
+		
+		// 0xA0 <h> <l> xx : read EEPROM memory
+		
+		// 0x58  00  00 xx : read lock bits
+		
+		// 0x30  00  00 xx : read vendor code
+		// 0x30  00  01 xx : read part family and flash size
+		// 0x30  00  02 xx : read part number
+		
+		// 0x50  00  00 xx : read fuse bits
+		// 0x58  08  00 xx : read fuse high bits
+		
+		// 0x50  08  00 xx : read extended fuse bits
+		
+		// 0x38  00  00 xx : read calibration byte
+		
+	// Write instructions :
+	
+		// 0x4C <H> <L> 00  : write FLASH memory page
+		
+		// 0xC0 <H> <L> <B> : write EEPROM memory
+		
+		// 0xC2 <H> <L> 00  : write EEPROM memory page 
+		
+		// 0xAC  E0  00 <B> : write lock bits
+		// 0xAC  A0  00 <B> : write fuse bits
+		// 0xAC  A8  00 <B> : write fuse high bits
+		// 0xAC  A4  00 <B> : write extended fuse bits
+	
+	
+	if( buff[0] == 0x30 && buff[1] == 0x00 ) // read signature codes
 	{
+		// Pretend to be an ATmega328p :
+		
 		switch( buff[2] ) 
 		{
-			case 0x00:
-				breply(0x1e);
+			case 0x00: // Vendor Code
+				breply(0x1E); // 0x1E = "manufactured by Atmel" ; 0x00 = "device locked"
 			break;
 			
-			case 0x01:
-				breply(0x95);
+			case 0x01: // Part Family and Flash Size
+				breply(0x95); // 0x9n = AVR with 2^n kB Flash memory ; 0xFF = Device Code Erased or Target Missing ; 0x01 = Device Locked
 			break;
 			
-			case 0x02:
-				breply(0x0f);
+			case 0x02: // Part Number
+				breply(0x0f); // 0x0f = ATmega328p
 			break;
 			
 			default:
@@ -343,19 +404,19 @@ void universal()
 		}
 	} 
 	else 
-	if( buff[0] == 0xf0 ) 
+	if( buff[0] == 0xf0 ) // <== Poll RDY/BSY ?
 	{
-		breply(0x00);
+		breply(0x00); // 0 = ready ; 1 = busy
 	} 
 	else
-	if ( buff[0] == 0x20 || buff[0] == 0x28 )
+	if ( buff[0] == 0x20 || buff[0] == 0x28 ) // read byte from Flash
 	{
 		// Read one byte from flash memory.
 		//!\ Atmega32 and AVRdude use addr for 16 bits data
 		//!\ LGT8Fx8p needs addr for 32 bits data
 		
-		// 0x20 AVR_OP_READ_HI
-		// 0x28 AVR_OP_READ_LO
+		// 0x20 AVR_OP_READ_LO
+		// 0x28 AVR_OP_READ_HI
 		
 		// buff[0] : 0x20-0x28
 		// buff[1] : addr_hi >> 1
@@ -370,6 +431,50 @@ void universal()
 		SWD_EEE_CSEQ(0x00, 0x01);
 		
 		breply( ((uint8_t*)&data)[ addr & 0x3 ] );
+	}
+	else
+	if ( buff[0] == 0xA0 ) // <== Ready EEPROM
+	{
+		// On LGT8Fx32p, EEPROM is emulated and stored into the main 
+		// flash memory. The default size if 1KB.
+		//
+		// Each 1KB of emulated EEPROM consumes two 1KB pages of flash 
+		// memory : "old page", and "new page".
+		// 
+		// Each time we write into the EEPROM, the hardware EEPROM emulator 
+		// erases the new page, copies the old and updated data into it, 
+		// swap the old and new pages, and update their two last bytes
+		// with a flag to remember which page is new and which is old.
+		//
+		// Because of these reserved 2 bytes, only 1022 bytes of EEPROM
+		// are available to the user.
+		//
+		// Each page can be viewed using `dump flash 0x7800 1024`
+		// and `dump flash 0x7c00 1024`.
+		//
+		// Though, here we implement the `dump eeprom` command that
+		// will display the most recent page.
+		
+		uint16_t addr = ( ( buff[1] << 8 ) | buff[2] ); // 8 bits data addr
+				
+		SWD_EEE_CSEQ(0x00, 0x01);
+	
+			// read the flag of the last page
+			uint32_t data = SWD_EEE_Read( ( 0x7ffc ) / 4 ); // LGT8Fx8p uses addr for 32bits data
+			
+			// most recent page ?
+			if ( ((uint8_t*)&data)[ 2 ] == 0 && ((uint8_t*)&data)[ 3 ] == 0x55 ) 
+			{
+				data = SWD_EEE_Read( ( 0x7c00 + addr ) / 4 ); // LGT8Fx8p uses addr for 32bits data		
+			}
+			else
+			{
+				data = SWD_EEE_Read( ( 0x7800 + addr ) / 4 ); // LGT8Fx8p uses addr for 32bits data
+			}
+		
+		SWD_EEE_CSEQ(0x00, 0x01);
+		
+		breply( ((uint8_t*)&data)[ addr & 0x3 ] ); 
 	}
 	else 
 	{
