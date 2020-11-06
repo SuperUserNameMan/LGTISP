@@ -76,7 +76,7 @@ Once powered down, the LGT8F328p will lock its Flash memory access from the ISP 
 
 The only way to unlock it was to erase it first. But brother-yan/LGTISP found that the chip could be unlocked by erasing the first 1KB of flash only.
 
-This mean that once powered down, 
+This mean that once powered down, connecting it to AVRdude will brick the device, and that you'll have to reprogram it.
    
 ## Note regarding the EEPROM on LGT8F328p :
 
