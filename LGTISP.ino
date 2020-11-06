@@ -305,11 +305,18 @@ void start_pmode(uint8_t chip_erase)
 	
 	SWD_init();
 	SWD_Idle(10);
-	
-	pmode = SWD_UnLock(chip_erase);
-	if ( ! pmode )
+
+	if ( chip_erase )
 	{
-		pmode = SWD_UnLock(chip_erase);
+		pmode = SWD_UnLock( chip_erase );
+		if ( ! pmode )
+		{
+			pmode = SWD_UnLock( chip_erase );
+		}
+	}
+	else
+	{
+		pmode = 1; // pretend 
 	}
 }
 
@@ -433,7 +440,7 @@ void universal()
 		breply( ((uint8_t*)&data)[ addr & 0x3 ] );
 	}
 	else
-	if ( buff[0] == 0xA0 ) // <== Ready EEPROM
+	if ( buff[0] == 0xA0 ) // <== Read EEPROM
 	{
 		// On LGT8Fx32p, EEPROM is emulated and stored into the main 
 		// flash memory. The default size if 1KB.
@@ -476,7 +483,17 @@ void universal()
 		
 		breply( ((uint8_t*)&data)[ addr & 0x3 ] ); 
 	}
-	else 
+	else
+	if ( buff[0] == 0x58 && buff[1] == 0 && buff[2] == 0 ) // 0x58  00  00 xx : read lock bits 
+	{
+		breply( SWD_read_lockbits() );
+	}
+	else
+	if ( buff[0] == 0xAC && buff[1] == 0xE0 && buff[2] == 0 ) // 0xAC  E0  00 <B> : write lock bits
+	{
+		SWD_UnLock( 2 ); // force destructive unlock - erase first 1KB to unlock
+	}
+	else
 	{
 		breply(0xff);
 	}
