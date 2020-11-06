@@ -5,10 +5,11 @@ LGT8Fx8p ISP protocol implementation.
 This is an implementation of LGT8Fx8p ISP protocol. 
 You can turn a LGT8Fx8p or an ATmega328p Arduino board into an ISP for LGT8Fx8P.
 
-This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash` and `dump eeprom` commands of AVRdude in terminal mode.
+This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash`, `dump eeprom`, `dump lock` and `write lock 0 0` commands of AVRdude in terminal mode.
 
 ## warning :
-- if the target LGT8Fx was powerred-down, connecting it to the ARVdude terminal using this ISP will erase the content of the first 1KB of Flash, which will brick it (see note about flash protection below).
+- once a newly programmed LGT8Fx is powerred-down, the access to its flash memory is locked. `dump flash` will displays `0xFF` everywhere.
+- Unlocking it is destructive. The first 1KB of flash will be erased, but the rest of the flash (including the emulated EEPROM) will be readable. To infocre the destructive using a `write lock 0 0`.
 
 ## supported functions
 - Arduino IDE and AVRdude commande line :
@@ -17,7 +18,9 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
 - AVRdude terminal mode :
    - [x] `dump flash` command
    - [x] `dump eeprom` command
-   - [ ] `write` command
+   - [X] `dump lock` command : `0x3E` means `locked`, `0x3F` means `unlocked`.
+   - [X] `write lock 0 0` command : to trigger a destructive unlock (the first 1KB of the flash will be erased).
+   - [ ] `write XXX` command
    - [ ] `erase` command
    - [x] `sig` command
    - [x] `part` command
@@ -72,11 +75,13 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
    
 ## Note regarding LGT8F328p flash protection :
 
-Once powered down, the LGT8F328p will lock its Flash memory access from the ISP : it will be impossible to `dump flash`, and impossible to reprogram using the ISP.
+Once powered down, the LGT8F328p will lock its Flash memory access from the ISP : it would be impossible to `dump flash` and to reprogram it.
 
-The only way to unlock it was to erase it first. But brother-yan/LGTISP found that the chip could be unlocked by erasing the first 1KB of flash only.
+The only way to unlock it was to erase it completly. But brother-yan/LGTISP found that the chip could be unlocked by erasing the first 1KB of flash only.
 
-This mean that once powered down, connecting it to AVRdude will brick the device, and that you'll have to reprogram it.
+To know if a device is locked you can use the `dump lock` command : `0x3E` mean the chip is locked. `0x3F` means it is unlocked.
+
+You can force a destructive unlock with a `write lock 0 0` command : only the first 1KB of the flash will be erased. The rest of the flash memory will be intact, including the EEPROM.
    
 ## Note regarding the EEPROM on LGT8F328p :
 
