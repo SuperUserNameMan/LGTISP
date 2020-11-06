@@ -7,6 +7,9 @@ You can turn a LGT8Fx8p or an ATmega328p Arduino board into an ISP for LGT8Fx8P.
 
 This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash` and `dump eeprom` commands of AVRdude in terminal mode.
 
+## warning :
+- if the target LGT8Fx was powerred-down, connecting it to the ARVdude terminal using this ISP will erase the content of the first 1KB of Flash, which will brick it (see note about flash protection below).
+
 ## supported functions
 - Arduino IDE and AVRdude commande line :
    - [x] upload/restore LGT8Fx8p bootloaders from the Arduino IDE
@@ -66,6 +69,14 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
    7. open a terminal, and run this command. AVRdude should open in terminal mode.
    7. command `dump flash <addr> <length>` will let you display the content of the flash.
    8. commant `quit` to quit, and `help` for help.
+   
+## Note regarding LGT8F328p flash protection :
+
+Once powered down, the LGT8F328p will lock its Flash memory access from the ISP : it will be impossible to `dump flash`, and impossible to reprogram using the ISP.
+
+The only way to unlock it was to erase it first. But brother-yan/LGTISP found that the chip could be unlocked by erasing the first 1KB of flash only.
+
+This mean that once powered down, 
    
 ## Note regarding the EEPROM on LGT8F328p :
 
