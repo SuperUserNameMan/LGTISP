@@ -1,3 +1,8 @@
+// 20201106 :
+// - makes unlock attempts non destructive by default
+// - `dump lock` will return 0x3F (unlocked) or 0x3E (locked)
+// - `write lock 0 0` will force destructive unlock (first 1KB flash will be lost)
+
 // 20201105 :
 // - universal() : added support for "dump eeprom" of AVRdude in terminal mode.
 // - swd_lgt8fx8p.x : indentation cleanup and googletranslation of chinese comments.
