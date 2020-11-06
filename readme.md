@@ -9,7 +9,8 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
 
 ## warning :
 - once a newly programmed LGT8Fx is powerred-down, the access to its flash memory is locked. `dump flash` will displays `0xFF` everywhere.
-- Unlocking it is destructive. The first 1KB of flash will be erased, but the rest of the flash (including the emulated EEPROM) will be readable. To infocre the destructive using a `write lock 0 0`.
+- Unlocking it is destructive. The first 1KB of flash will be erased, but the rest of the flash (including the emulated EEPROM) will be readable. Locked devices have to be unlocked manually using a `write lock 0 0`.
+- for more details, see note regarding LGT8F328p flash protection, below.
 
 ## supported functions
 - Arduino IDE and AVRdude commande line :
