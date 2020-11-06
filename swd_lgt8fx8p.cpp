@@ -152,6 +152,8 @@ void SWD_ReadSWDID( char *pdata )
 	SWD_Idle(4);
 }
 
+
+
 void SWD_ReadGUID( char *guid )
 {
 	SWD_Idle(10);
@@ -291,6 +293,15 @@ void SWD_EEE_Write(uint32_t data, uint16_t addr)
 	SWD_EEE_CSEQ(0x86, addr);
 }
 
+uint8_t SWD_read_lockbits()
+{
+	char swdid[4];
+	
+	SWD_ReadSWDID(swdid); 
+	
+	return swdid[0];
+}
+
 uint8_t SWD_UnLock(uint8_t chip_erase)
 {
 	char swdid[4];
@@ -306,7 +317,7 @@ uint8_t SWD_UnLock(uint8_t chip_erase)
 		return 0;
 	}
 	
-	if ( swdid[0] == 0x3f && !chip_erase ) // 已经解锁，且不全片擦除 - // Has been unlocked, and not completely erased
+	if ( swdid[0] == 0x3f && chip_erase == 0 ) // 已经解锁，且不全片擦除 - // Has been unlocked, and not completely erased
 	{
 		return 1;
 	}
@@ -316,11 +327,12 @@ uint8_t SWD_UnLock(uint8_t chip_erase)
 		SWD_UnLock0();
 	}
 	
-	if ( chip_erase )
+	if ( chip_erase == 1 ) // full erase
 	{
 		SWD_ChipErase();
 	}
 	else
+	if ( chip_erase == 2 ) // partial erase
 	{
 		crack();
 	}
