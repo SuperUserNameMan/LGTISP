@@ -118,3 +118,4 @@ So on 1024 bytes, only 1022 are actually available, and the 2 lasts ones will be
 - Atk500v1 protocol : http://ww1.microchip.com/downloads/en/Appnotes/doc2525.pdf 
 - AVRdude : http://savannah.nongnu.org/projects/avrdude
 - AVR ISP protocol : [AVR910 - In-System-Programming protocol](http://ww1.microchip.com/downloads/en/Appnotes/Atmel-0943-In-System-Programming_ApplicationNote_AVR910.pdf)
+- Related discussion : https://github.com/dbuezas/lgt8fx-forum/issues/1
