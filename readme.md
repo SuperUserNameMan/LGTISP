@@ -71,18 +71,20 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
    `<path>/arduino-1.8.13/hardware/tools/avr/bin/avrdude -C<path>/arduino-1.8.13/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -cstk500v1 -P<isp_serial_adapter> -t`
    6. `-t` will open AVRdude in terminal mode.
    7. open a terminal, and run this command. AVRdude should open in terminal mode.
-   7. command `dump flash <addr> <length>` will let you display the content of the flash.
+   7. if the flash memory is unlocked, command `dump flash <addr> <length>` will let you display the content of the flash, and command `dump eeprom 0 1024` will display the content of the EEPROM.
    8. commant `quit` to quit, and `help` for help.
    
 ## Note regarding LGT8F328p flash protection :
 
-Once powered down, the LGT8F328p will lock its Flash memory access from the ISP : it would be impossible to `dump flash` and to reprogram it.
+When a LGT8F328p chip is powered down just after it was programmed, its Flash memory access is locked from the ISP : it becomes impossible to `dump flash` and to reprogram it.
 
-The only way to unlock it was to erase it completly. But brother-yan/LGTISP found that the chip could be unlocked by erasing the first 1KB of flash only.
+The only way to unlock it was to erase it completly. But brother-yan/LGTISP found that the chip could be unlocked just by erasing the first 1KB of flash only.
 
 To know if a device is locked you can use the `dump lock` command : `0x3E` mean the chip is locked. `0x3F` means it is unlocked.
 
-You can force a destructive unlock with a `write lock 0 0` command : only the first 1KB of the flash will be erased. The rest of the flash memory will be intact, including the EEPROM.
+You can force a destructive unlock with a `write lock 0 0` command : only the first 1KB of the flash will be erased to `0xFF`. All the rest of the flash memory will remain intact, including the EEPROM for inspection. However, once done, the chip will be bricked, and you'll have to reprogram it using the ISP.
+   
+The only known way to inspect the content of the Flash in a non destructive manner is to keep the device powered after it was programmed.
    
 ## Note regarding the EEPROM on LGT8F328p :
 
