@@ -1,7 +1,11 @@
 // 20201110 :
 // - universal() : 'dump eeprom' the most recent 1KB page according to
 // this : https://github.com/SuperUserNameMan/LGTISP/issues/5
-// 
+// - universal() : use `write eeprom 1023 0x<P:4><S:4>` to indicate to 
+// the ISP which 1KB page <P> and which size <S> of the EEPROM to display
+// using `dump eeprom 0 1024`. 
+//   Ex : `write eeprom 1023 0x04` will select page 0 of a 4KB EEPROM
+//   Ex : `write eeprom 1023 0x38` will select page 3 of a 8KB EEPROM
 
 // 20201106 :
 // - makes unlock attempts non destructive by default
@@ -126,6 +130,9 @@ uint8_t pmode=0;
 // address for reading and writing, set by 'U' command
 int address;
 uint8_t buff[256]; // global block storage
+
+uint8_t eeprom_size = 1; // in pages of 1KB ( 1, 2, 4 or 8 )
+uint8_t eeprom_page = 0; // 0 to 7
 
 #define beget16(addr) (*addr * 256 + *(addr+1) )
 typedef struct param 
@@ -450,6 +457,64 @@ void universal()
 		breply( ((uint8_t*)&data)[ addr & 0x3 ] );
 	}
 	else
+	if ( buff[0] == 0xC0 ) // <== 0xC0 <H> <L> <B> : write EEPROM memory
+	{
+		// By default, LGT8F328p emulated EEPROM is 1024 bytes, but it is 
+		// possible to emulate larger size (2048, 4096, 8192 bytes).
+		//
+		// Unfortnuately, because this ISP prentend to be connected to
+		// an ATmega328p, AVRdude will only allow to dump 1024 bytes of
+		// EEPROM.
+		//
+		// Because the EEPROM is emulated using the main Flash memory, 
+		// we can `dump flash` the content of the emulated EEPROM using. 
+		// And because each emulated 1KB page of EEPROM correspond to 
+		// two 1KB page of Flash, we would have to look at the last
+		// 2 bytes of each of these 1KB page of Flash to determines which
+		// one contains the most recent data of the emulated EEPROM ...
+		
+		// The other possibility, is to hijack the `write eeprom` command
+		// to tell to the ISP which EEPROM page to read when `dump eeprom`.
+		
+		// The code below we intercept `write eeprom 1023 0x<P><S>`
+		// where <P> is the 1KB page number of the EEPROM (from 0 to 7)
+		// and <S> is the size of the EEPROM (1,2,4 or 8).
+		//
+		// For instance :
+		// - `write eeprom 1023 0x08` will tell to the ISP to select the
+		// page 0 of a 8KB EEPROM.
+		
+		// - `write eeprom 1023 0x12` will tell to the ISP to select the
+		// page 1 of a 2KB EEPROM.
+		
+		uint16_t addr = ( ( buff[1] << 8 ) | buff[2] ); // 8 bits data addr
+		
+		if ( addr == 1023 )
+		{
+
+			eeprom_size = ( buff[3] ) & 0x0f; 
+			
+			for( uint8_t i = 1; i <= 8; i<<=1 )
+			{
+				if ( eeprom_size <= i )
+				{
+					eeprom_size = i; // will be adjusted to 1, 2, 4 or 8
+					break;
+				}
+			}
+			
+			eeprom_page = ( buff[3] >> 4 ) & 0x0f;
+			
+			if ( eeprom_page >= eeprom_size )
+			{
+				eeprom_page = eeprom_size - 1;
+			}
+			
+		}
+		
+		breply(0xff);
+	}
+	else
 	if ( buff[0] == 0xA0 ) // <== Read EEPROM
 	{
 		// On LGT8Fx32p, EEPROM is emulated and stored into the main 
@@ -471,16 +536,23 @@ void universal()
 		//
 		// Though, here we implement the `dump eeprom` command that
 		// will display the most recent page.
+		//
+		// To dump the content of emulated EEPROM greater than 1KB, 
+		// you can use the 'write eeprom 1023 0x<P><S>' command, where 
+		// <P> is the number of the 1KB page of the EEPROM (from 0 to 7), 
+		// and <S> is the size of the emulated EEPROM (1,2,4 or 8).
 		
 		uint32_t data;
+		uint16_t base = 0x8000 - ( eeprom_size * 2048 ) + eeprom_page * 2048;
+		
 		uint16_t addr = ( ( buff[1] << 8 ) | buff[2] ); // 8 bits data addr
 				
 		SWD_EEE_CSEQ(0x00, 0x01);
 	
 		// The 4 last bytes of each pages contains their flag and the magic number : 
 		
-		uint32_t page0 = SWD_EEE_Read( ( 0x7bfc ) / 4 ); // LGT8Fx8p uses addr for 32bits data
-		uint32_t page1 = SWD_EEE_Read( ( 0x7ffc ) / 4 ); // LGT8Fx8p uses addr for 32bits data
+		uint32_t page0 = SWD_EEE_Read( ( base + ( 1024 - 4 ) ) / 4 ); // LGT8Fx8p uses addr for 32bits data
+		uint32_t page1 = SWD_EEE_Read( ( base + ( 2048 - 4 ) ) / 4 ); // LGT8Fx8p uses addr for 32bits data
 		
 		// The last byte of a valid page must be 0x55. 
 		// If not, we act like if the flag was 0xff :
@@ -523,15 +595,15 @@ void universal()
 			  case 0x01: // 1 is more recent than 0
 			//case 0x00: // should not happen
 			
-				// second page is most recent :
-				data = SWD_EEE_Read( ( 0x7c00 + addr ) / 4 ); // LGT8Fx8p uses addr for 32bits data
+				// second 1KB page is most recent :
+				data = SWD_EEE_Read( ( base + 1024 + addr ) / 4 ); // LGT8Fx8p uses addr for 32bits data
 				
 			  break;
 			
 			  default:
 			  
-				// first page is most recent :
-				data = SWD_EEE_Read( ( 0x7800 + addr ) / 4 ); // LGT8Fx8p uses addr for 32bits data
+				// first 1KB page is most recent :
+				data = SWD_EEE_Read( ( base + addr ) / 4 ); // LGT8Fx8p uses addr for 32bits data
 				
 			  break;
 		}
