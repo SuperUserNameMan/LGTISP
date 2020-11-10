@@ -1,3 +1,8 @@
+// 20201110 :
+// - universal() : 'dump eeprom' the most recent 1KB page according to
+// this : https://github.com/SuperUserNameMan/LGTISP/issues/5
+// 
+
 // 20201106 :
 // - makes unlock attempts non destructive by default
 // - `dump lock` will return 0x3F (unlocked) or 0x3E (locked)
@@ -467,22 +472,59 @@ void universal()
 		// Though, here we implement the `dump eeprom` command that
 		// will display the most recent page.
 		
+		
 		uint16_t addr = ( ( buff[1] << 8 ) | buff[2] ); // 8 bits data addr
 				
 		SWD_EEE_CSEQ(0x00, 0x01);
 	
 			// read the flag of the last page
-			uint32_t data = SWD_EEE_Read( ( 0x7ffc ) / 4 ); // LGT8Fx8p uses addr for 32bits data
+			uint32_t page0 = SWD_EEE_Read( ( 0x7bfc ) / 4 ); // LGT8Fx8p uses addr for 32bits data
+			uint32_t page1 = SWD_EEE_Read( ( 0x7ffc ) / 4 ); // LGT8Fx8p uses addr for 32bits data
 			
-			// most recent page ?
-			if ( ((uint8_t*)&data)[ 2 ] == 0 && ((uint8_t*)&data)[ 3 ] == 0x55 ) 
+			uint8_t tag0tag1 = ( (((uint8_t*)&page0)[ 2 ] & 0xf ) << 4 ) | ( ((uint8_t*)&page1)[ 2 ] & 0xf );
+					
+			uint32_t data;
+						
+			// The most recent page can be determined according to their tags :
+			// - if both tags are equal, page0 is more recent
+			// - tags between 0 and 3 are more recent than tag 0xf
+			// - tag 0 is more recent than tag 3
+			// - else, the greater tag is the most recent
+			// - some tag combination are not supposed to happen : first page is default.
+
+			switch( tag0tag1 )
 			{
-				data = SWD_EEE_Read( ( 0x7c00 + addr ) / 4 ); // LGT8Fx8p uses addr for 32bits data		
+				//case 0xff: // when EEPROM is blank
+				  case 0xf3: // should not happen unless electrical failure
+				  case 0xf2: // should not happen unless electrical failure
+				  case 0xf1: // should not happen unless electrical failure
+				  case 0xf0: 
+				//case 0x33: // should not happen
+				//case 0x32:
+				//case 0x31: // should not happen
+				  case 0x30: // 0 is more recent than 3
+				  case 0x23: // 3 is more recent than 2
+				//case 0x22: // should not happen
+				//case 0x21: 
+				//case 0x20: 
+				  case 0x13: // should not happen
+				  case 0x12: // 2 is more recent than 1
+				//case 0x11: // should not happen
+				//case 0x10: 
+				//case 0x03: 
+				  case 0x02: // should not happen
+				  case 0x01: // 1 is more recent than 0
+				//case 0x00: // should not happen
+					// second page is most recent :
+					data = SWD_EEE_Read( ( 0x7c00 + addr ) / 4 ); // LGT8Fx8p uses addr for 32bits data
+				  break;
+				
+				  default:
+					// first page is most recent :
+					data = SWD_EEE_Read( ( 0x7800 + addr ) / 4 ); // LGT8Fx8p uses addr for 32bits data
+				  break;
 			}
-			else
-			{
-				data = SWD_EEE_Read( ( 0x7800 + addr ) / 4 ); // LGT8Fx8p uses addr for 32bits data
-			}
+			
 		
 		SWD_EEE_CSEQ(0x00, 0x01);
 		
