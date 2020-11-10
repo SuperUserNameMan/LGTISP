@@ -5,7 +5,7 @@ LGT8Fx8p ISP protocol implementation.
 This is an implementation of LGT8Fx8p ISP protocol. 
 You can turn a LGT8Fx8p or an ATmega328p Arduino board into an ISP for LGT8Fx8P.
 
-This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash`, `dump eeprom`, `dump lock` and `write lock 0 0` commands of AVRdude in terminal mode.
+This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash`, `dump eeprom`, `dump lock`, `write lock 0 0` and `write eeprom 1023 0x??` commands of AVRdude in terminal mode.
 
 ## warning :
 - Once a newly programmed LGT8Fx is powerred-down, the access to its flash memory is locked. `dump flash` will displays `0xFF` everywhere.
@@ -21,6 +21,7 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
    - [x] `dump eeprom` command
    - [X] `dump lock` command : `0x3E` means `locked`, `0x3F` means `unlocked`.
    - [X] `write lock 0 0` command : to trigger a destructive unlock (the first 1KB of the flash will be erased).
+   - [X] `write eeprom 1023 0x??` command : is a workaround to tell to the ISP which 1KB page and which size of EEPROM will be dumped. 
    - [ ] `write XXX` command
    - [ ] `erase` command
    - [x] `sig` command
@@ -102,9 +103,9 @@ The size of this emulated EEPROM can be set by software using bits 1 and 0 of th
 | 1 | 0 | 4KB | 4096 - 8 | 8192 |
 | 1 | 1 | 8KB | 8192 - 16 | 16384 |
 
-However, because AVRdude thinks the LGT8F328p is an ATmega328p, `dump eeprom` will only display 1KB.
+However, because AVRdude thinks the LGT8F328p is an ATmega328p, `dump eeprom` will only display 1KB of data.
 
-Also, because EEPROM is emulated using the main Flash memory, it can be dumped using `dump flash 0x7800 1024` and `dump flash 0x7c00 1024`.
+Also, because EEPROM is emulated using the main Flash memory, the two copies of the content of a 1KB EEPROM can be dumped using `dump flash 0x7800 1024` and `dump flash 0x7c00 1024`.
 
 There are two pages, because the hardware algorithm swap them each time the content of the emulated EEPROM is updated.
 
@@ -113,6 +114,30 @@ The hardware algorithm does like this : each time the EEPROM is updated, the EPC
 This means that 1KB of EEPROM will use 2KB of flash, 2KB will use 4KB, etc, and also that the last 2 bytes of every 1024 bytes pages will contain a code.
 
 So on 1024 bytes, only 1022 are actually available, and the 2 lasts ones will be overwritten by the LGT8F328p.
+
+## Workaround to dump content of EEPROM greater than 1KB :
+
+As mentioned many times, LGT8F328p emulates EEPROM using Flash memory. 
+
+By default its size is set to 1KB, but it can be changed to 2Kb, 4KB or 8KB.
+
+And because the ISP pretend to be connected to an ATmega328p, AVRdude will not allow to dump EEPROM greater than 1024.
+
+To workaround this limiation, the `write eeprom 1023 0x??` command can be used to tell to the ISP which 1KB page of the EEPROM will be dumped, and what is the size of the emulated EEPROM.
+
+The EEPROM address 1023 (or 0x3ff) is the address of the last byte of the 1KB page. As mentioned previously, the 2 last bytes of each 1KB page are read-only anyway, because they are used by the EEPROM controller to store a magic number. So we can use this address safely to tell to the ISP which 1KB page of the EEPROM we want to dump, and what is the size of this EEPROM.
+
+When the data sent to this address is written in hexadecimal, the left quartet contains the page number (from 0 to 7), and the right quartet contains the size of the EEPROM.
+
+Example :
+
+`write eeprom 1023 0x04` will select page 0 of a 4KB EEPROM.
+
+`write eeprom 1023 0x38` will select page 3 of a 8KB EEPROM.
+
+`dump eeprom 0 1024` will displays the content according to these parameters.
+
+By default, the ISP consider the eeprom is 1KB. (which is equivalent to `write eeprom 1023 0x01`.)
 
 
 ## reference
