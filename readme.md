@@ -8,8 +8,8 @@ You can turn a LGT8Fx8p or an ATmega328p Arduino board into an ISP for LGT8Fx8P.
 This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash`, `dump eeprom`, `dump lock` and `write lock 0 0` commands of AVRdude in terminal mode.
 
 ## warning :
-- once a newly programmed LGT8Fx is powerred-down, the access to its flash memory is locked. `dump flash` will displays `0xFF` everywhere.
-- Unlocking it is destructive. The first 1KB of flash will be erased, but the rest of the flash (including the emulated EEPROM) will be readable. Locked devices have to be unlocked manually using a `write lock 0 0`.
+- Once a newly programmed LGT8Fx is powerred-down, the access to its flash memory is locked. `dump flash` will displays `0xFF` everywhere.
+- Unlocking is destructive. The first 1KB of flash will be erased, but the rest of the flash (including the emulated EEPROM) will be readable. When using AVRdude as terminal, locked devices can be unlocked manually using a `write lock 0 0`.
 - for more details, see note regarding LGT8F328p flash protection, below.
 
 ## supported functions
@@ -76,13 +76,16 @@ This https://github.com/SuperUserNameMan/LGTISP version supports the `dump flash
    
 ## Note regarding LGT8F328p flash protection :
 
-When a LGT8F328p chip is powered down just after it was programmed, its Flash memory access is locked from the ISP : it becomes impossible to `dump flash` and to reprogram it.
+When a LGT8F328p chip is powered down just after it was programmed, its Flash memory access is locked from the ISP : it becomes impossible to `dump flash` and to reprogram it using the ISP.
 
-The only way to unlock it was to erase it completly. But brother-yan/LGTISP found that the chip could be unlocked just by erasing the first 1KB of flash only.
+The only known way to unlock a device was to erase it completly, which was not a problem at all when using the ISP to upload new sketch from the Arduino IDE.
+On the other hand, inspecting the content of the flash using AVRdude terminal was impossible on locked devices, since they had to be erased to be unlocked ...
 
-To know if a device is locked you can use the `dump lock` command : `0x3E` mean the chip is locked. `0x3F` means it is unlocked.
+Later, brother-yan/LGTISP found that the chip could be unlocked by only erasing the first 1KB of flash, which made possible to inspect the rest of a locked device using AVRdude terminal.
 
-You can force a destructive unlock with a `write lock 0 0` command : only the first 1KB of the flash will be erased to `0xFF`. All the rest of the flash memory will remain intact, including the EEPROM for inspection. However, once done, the chip will be bricked, and you'll have to reprogram it using the ISP.
+To know if a device is locked you can use the `dump lock` command : `0x3E` means the chip is locked. `0x3F` means it is unlocked.
+
+You can force the destructive unlock with a `write lock 0 0` command : only the first 1KB of the flash will be erased to `0xFF`. All the rest of the flash memory will remain intact, including the EEPROM, for inspection. However, once done, the chip will be bricked (the first 1KB contained the Interrupts Vectors table as well as the beginning of the sketch), so you'll have to reprogram it using the ISP.
    
 The only known way to inspect the content of the Flash in a non destructive manner is to keep the device powered after it was programmed.
    
