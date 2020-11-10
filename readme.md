@@ -123,21 +123,42 @@ By default its size is set to 1KB, but it can be changed to 2Kb, 4KB or 8KB.
 
 And because the ISP pretend to be connected to an ATmega328p, AVRdude will not allow to dump EEPROM greater than 1024.
 
-To workaround this limiation, the `write eeprom 1023 0x??` command can be used to tell to the ISP which 1KB page of the EEPROM will be dumped, and what is the size of the emulated EEPROM.
+To workaround this limitation, we can now use the command `write eeprom 1023 0x<page><size>` to tell to the ISP which 1KB page of the EEPROM we want to dump, and what is the size of this EEPROM.
 
-The EEPROM address 1023 (or 0x3ff) is the address of the last byte of the 1KB page. As mentioned previously, the 2 last bytes of each 1KB page are read-only anyway, because they are used by the EEPROM controller to store a magic number. So we can use this address safely to tell to the ISP which 1KB page of the EEPROM we want to dump, and what is the size of this EEPROM.
 
-When the data sent to this address is written in hexadecimal, the left quartet contains the page number (from 0 to 7), and the right quartet contains the size of the EEPROM.
 
-Example :
+`<page>` must be replace by a number from 0 to 7.
+`<size>` must be replaced by a number among 1, 2, 4 and 8.
 
-`write eeprom 1023 0x04` will select page 0 of a 4KB EEPROM.
+| `<page>` | EEPROM address space | hex |
+|:-:|:-:|:-:|
+| 0 | 0 - 1023 | `0x0000 - 0x03FF` |
+| 1 | 1024 - 2047 |  `0x0400 - 0x07FF` |
+| 2 | 2048 - 3071 | `0x0800 - 0x0bFF` |
+| 3 | 3071 - 4095 | `0x0c00 - 0x0FFF` |
+| 4 | 4096 - 5119 | `0x1000 - 0x13FF` |
+| 5 | 5120 - 6143 | `0x1400 - 0x17FF` |
+| 6 | 6144 - 7167 | `0x1800 - 0x1bFF` |
+| 7 | 7168 - 8191 | `0x1c00 - 0x1fFF` |
 
-`write eeprom 1023 0x38` will select page 3 of a 8KB EEPROM.
 
-`dump eeprom 0 1024` will displays the content according to these parameters.
+| `<size>` | EEPROM size |
+|:-:|:-:|
+| 1 | 1024 |
+| 2 | 2048 |
+| 4 | 4096 |
+| 8 | 8192 |
+
+Examples : 
+- `write eeprom 1023 0x04` will select page 0 of a 4KB EEPROM.
+- `write eeprom 1023 0x38` will select page 3 of a 8KB EEPROM.
+
+`dump eeprom 0 1024` will display this page.
+
+Writing to the EEPROM address 1023 (or 0x3ff) is okay, because it is the address of the last byte of the 1KB page. As mentioned previously, the 2 last bytes of each 1KB page are read-only anyway, because they are used by the EEPROM controller to store a magic number. So we can use this address safely to tell to the ISP which 1KB page of the EEPROM we want to dump, and what is the size of this EEPROM.
 
 By default, the ISP consider the eeprom is 1KB. (which is equivalent to `write eeprom 1023 0x01`.)
+
 
 
 ## reference
